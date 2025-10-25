@@ -87,7 +87,7 @@ export default function AdminPage() {
         status: 'ordered',
         updatedAt: new Date()
       });
-      toast.success('✅ Marcado como ordenado');
+      toast.success('Marcado como ordenado');
       loadOrders();
     } catch (error) {
       toast.error('Error al actualizar');
@@ -102,7 +102,7 @@ export default function AdminPage() {
         deliveryTime: new Date(),
         updatedAt: new Date()
       });
-      toast.success('📦 Marcado como entregado - Gabriela recibirá notificación');
+      toast.success('Marcado como entregado - Gabriela recibirá notificación');
       loadOrders();
     } catch (error) {
       toast.error('Error al actualizar');
@@ -112,7 +112,7 @@ export default function AdminPage() {
 
   const getOrderDetails = (order: Order) => {
     if (order.orderType === 'surprise') {
-      return '🎲 Sorpresa';
+      return 'Sorpresa';
     }
     
     if (order.selectedItems && order.selectedItems.length > 0) {
@@ -126,10 +126,10 @@ export default function AdminPage() {
 
   const getStatusBadge = (status: string) => {
     const badges = {
-      pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: '⏳ Pendiente' },
-      ordered: { bg: 'bg-blue-100', text: 'text-blue-700', label: '🛒 Ordenado' },
-      delivered: { bg: 'bg-purple-100', text: 'text-purple-700', label: '📦 Entregado' },
-      confirmed: { bg: 'bg-green-100', text: 'text-green-700', label: '✅ Confirmado' }
+      pending: { bg: 'bg-yellow-900 border border-yellow-700', text: 'text-yellow-300', label: 'Pendiente' },
+      ordered: { bg: 'bg-blue-900 border border-blue-700', text: 'text-blue-300', label: 'Ordenado' },
+      delivered: { bg: 'bg-purple-900 border border-purple-700', text: 'text-purple-300', label: 'Entregado' },
+      confirmed: { bg: 'bg-green-900 border border-green-700', text: 'text-green-300', label: 'Confirmado' }
     };
     
     const badge = badges[status as keyof typeof badges] || badges.pending;
@@ -143,30 +143,32 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-coffee-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4">
+      <header className="bg-gradient-to-r from-gray-800 via-gray-800 to-gray-900 shadow-xl border-b border-gray-700/50 backdrop-blur-sm sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto px-4 py-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate('/')}
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                className="p-2.5 hover:bg-gray-700/50 rounded-xl text-gray-400 hover:text-gray-200 transition-all"
                 title="Volver"
               >
                 <ArrowLeft className="w-6 h-6" />
               </button>
-              <Coffee className="w-8 h-8 text-coffee-600" />
+              <div className="p-2.5 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl shadow-lg">
+                <Coffee className="w-7 h-7 text-white" />
+              </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">Panel de Administración</h1>
-                <p className="text-sm text-gray-600">Gestión de pedidos</p>
+                <h1 className="text-2xl font-bold text-white">Panel de Administración</h1>
+                <p className="text-sm text-gray-400 mt-0.5">Gestión de pedidos</p>
               </div>
             </div>
           </div>
@@ -177,31 +179,31 @@ export default function AdminPage() {
               onClick={() => setFilter('pending')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filter === 'pending'
-                  ? 'bg-yellow-100 text-yellow-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-yellow-900 text-yellow-300 border border-yellow-700'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
               }`}
             >
-              ⏳ Pendientes ({orders.filter(o => o.status === 'pending').length})
+              Pendientes ({orders.filter(o => o.status === 'pending').length})
             </button>
             <button
               onClick={() => setFilter('ordered')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filter === 'ordered'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-blue-900 text-blue-300 border border-blue-700'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
               }`}
             >
-              🛒 Ordenados ({orders.filter(o => o.status === 'ordered').length})
+              Ordenados ({orders.filter(o => o.status === 'ordered').length})
             </button>
             <button
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filter === 'all'
-                  ? 'bg-coffee-100 text-coffee-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-coffee-900 text-coffee-300 border border-coffee-700'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
               }`}
             >
-              📋 Todos
+              Todos
             </button>
           </div>
         </div>
@@ -210,9 +212,9 @@ export default function AdminPage() {
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
         {orders.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center border border-gray-200">
-            <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+          <div className="bg-gray-800 rounded-xl p-12 text-center border border-gray-700">
+            <AlertCircle className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-300 mb-2">
               No hay pedidos {filter !== 'all' ? `${filter === 'pending' ? 'pendientes' : 'ordenados'}` : ''}
             </h3>
             <p className="text-gray-500">
@@ -222,16 +224,16 @@ export default function AdminPage() {
         ) : (
           <div className="space-y-4">
             {orders.map(order => (
-              <div key={order.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+              <div key={order.id} className="bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-700 hover:shadow-xl transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-bold text-xl text-gray-800">
+                      <h3 className="font-bold text-xl text-white">
                         {format(new Date(order.shiftDate), "EEEE d 'de' MMMM", { locale: es })}
                       </h3>
                       {getStatusBadge(order.status)}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
                       <Clock className="w-4 h-4" />
                       <span>
                         Creado: {order.createdAt?.toDate?.()?.toLocaleString('es-MX', {
@@ -246,19 +248,32 @@ export default function AdminPage() {
                 </div>
 
                 {/* Order Details */}
-                <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="mb-4 p-4 bg-gray-700 rounded-lg border border-gray-600">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase mb-1">Tipo de pedido</p>
-                      <p className="text-gray-800 font-medium">
-                        {order.orderType === 'surprise' ? '✨ Sorpresa' : '📋 Seleccionado'}
+                      <p className="text-xs font-medium text-gray-400 uppercase mb-1">Tipo de pedido</p>
+                      <p className="text-white font-medium">
+                        {order.orderType === 'surprise' ? 'Sorpresa' : 'Seleccionado'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase mb-1">Detalles</p>
-                      <p className="text-gray-800">{getOrderDetails(order)}</p>
+                      <p className="text-xs font-medium text-gray-400 uppercase mb-1">Detalles</p>
+                      <p className="text-white">{getOrderDetails(order)}</p>
                     </div>
                   </div>
+                  
+                  {/* Feedback Section */}
+                  {order.feedback && (
+                    <div className="mt-4 pt-4 border-t border-gray-600">
+                      <p className="text-xs font-medium text-coffee-400 uppercase mb-2 flex items-center gap-2">
+                        <Coffee className="w-4 h-4" />
+                        Comentario de Gabriela
+                      </p>
+                      <div className="bg-gray-800/50 p-3 rounded-lg border border-coffee-700/30">
+                        <p className="text-gray-300 text-sm italic">"{order.feedback}"</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Action Buttons */}
@@ -293,8 +308,8 @@ export default function AdminPage() {
                   )}
 
                   {(order.status === 'delivered' || order.status === 'confirmed') && (
-                    <div className="flex-1 py-3 px-4 bg-gray-100 text-gray-600 rounded-lg font-medium text-center">
-                      {order.status === 'delivered' ? '⏳ Esperando confirmación de Gabriela' : '✅ Confirmado por Gabriela'}
+                    <div className="flex-1 py-3 px-4 bg-gray-700 text-gray-300 rounded-lg font-medium text-center border border-gray-600">
+                      {order.status === 'delivered' ? 'Esperando confirmación de Gabriela' : 'Confirmado por Gabriela'}
                     </div>
                   )}
                 </div>
@@ -306,25 +321,25 @@ export default function AdminPage() {
         {/* Stats Summary */}
         {orders.length > 0 && (
           <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-              <p className="text-sm text-gray-600 mb-1">Total Pedidos</p>
-              <p className="text-3xl font-bold text-gray-800">{orders.length}</p>
+            <div className="bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700">
+              <p className="text-sm text-gray-400 mb-1">Total Pedidos</p>
+              <p className="text-3xl font-bold text-white">{orders.length}</p>
             </div>
-            <div className="bg-yellow-50 rounded-xl shadow-sm p-6 border border-yellow-200">
-              <p className="text-sm text-yellow-700 mb-1">Pendientes</p>
-              <p className="text-3xl font-bold text-yellow-700">
+            <div className="bg-yellow-900 rounded-xl shadow-lg p-6 border border-yellow-700">
+              <p className="text-sm text-yellow-300 mb-1">Pendientes</p>
+              <p className="text-3xl font-bold text-yellow-300">
                 {orders.filter(o => o.status === 'pending').length}
               </p>
             </div>
-            <div className="bg-blue-50 rounded-xl shadow-sm p-6 border border-blue-200">
-              <p className="text-sm text-blue-700 mb-1">Ordenados</p>
-              <p className="text-3xl font-bold text-blue-700">
+            <div className="bg-blue-900 rounded-xl shadow-lg p-6 border border-blue-700">
+              <p className="text-sm text-blue-300 mb-1">Ordenados</p>
+              <p className="text-3xl font-bold text-blue-300">
                 {orders.filter(o => o.status === 'ordered').length}
               </p>
             </div>
-            <div className="bg-green-50 rounded-xl shadow-sm p-6 border border-green-200">
-              <p className="text-sm text-green-700 mb-1">Confirmados</p>
-              <p className="text-3xl font-bold text-green-700">
+            <div className="bg-green-900 rounded-xl shadow-lg p-6 border border-green-700">
+              <p className="text-sm text-green-300 mb-1">Confirmados</p>
+              <p className="text-3xl font-bold text-green-300">
                 {orders.filter(o => o.status === 'confirmed').length}
               </p>
             </div>

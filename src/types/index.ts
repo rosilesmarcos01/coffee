@@ -3,7 +3,9 @@ import { Timestamp } from 'firebase/firestore';
 export interface MenuItem {
   id: string;
   name: string;
-  category: 'coffee' | 'food' | 'combo';
+  category: 'coffee' | 'food' | 'combo' | 'seasonal' | 'hot-coffee' | 'iced-coffee' | 'cold-brew' | 
+            'frappuccino-coffee' | 'frappuccino-cream' | 'refreshers' | 'shaken-espresso' | 
+            'hot-tea' | 'iced-tea' | 'coffee-beans';
   description: string;
   imageUrl?: string;
   available: boolean;
@@ -20,6 +22,7 @@ export interface Order {
   status: 'pending' | 'ordered' | 'delivered' | 'confirmed';
   deliveryTime?: Timestamp;
   confirmedAt?: Timestamp;
+  feedback?: string; // User feedback/message after confirmation
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

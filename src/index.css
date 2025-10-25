@@ -1,6 +1,19 @@
 @import "tailwindcss";
 
 body {
-  background-color: #f9fafb;
+  background-color: #1a1a1a;
+  color: #e5e5e5;
 }
 
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
