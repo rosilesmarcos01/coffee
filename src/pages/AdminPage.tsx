@@ -4,11 +4,13 @@ import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/fire
 import { db } from '../config/firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Package, CheckCircle, ArrowLeft, Coffee, Clock, AlertCircle } from 'lucide-react';
+import { Package, CheckCircle, ArrowLeft, Coffee, Clock, AlertCircle, Menu } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Order, MenuItem } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function AdminPage() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [menuItems, setMenuItems] = useState<Record<string, MenuItem>>({});
@@ -16,9 +18,16 @@ export default function AdminPage() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'ordered'>('pending');
 
   useEffect(() => {
+    // Check if user is admin
+    if (!user || user.email !== 'rosilesmarcos99@gmail.com') {
+      toast.error('Acceso denegado');
+      navigate('/');
+      return;
+    }
+    
     loadMenu();
     loadOrders();
-  }, [filter]);
+  }, [filter, user, navigate]);
 
   const loadMenu = async () => {
     try {
@@ -171,6 +180,15 @@ export default function AdminPage() {
                 <p className="text-sm text-gray-400 mt-0.5">Gestión de pedidos</p>
               </div>
             </div>
+            
+            <button
+              onClick={() => navigate('/admin/menu')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-pink-600 text-white rounded-xl font-semibold hover:bg-pink-700 transition-all shadow-lg"
+              title="Gestión de Menú"
+            >
+              <Menu className="w-5 h-5" />
+              Gestionar Menú
+            </button>
           </div>
 
           {/* Filter Tabs */}

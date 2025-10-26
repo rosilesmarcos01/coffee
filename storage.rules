@@ -1,0 +1,12 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow anyone to read menu item images
+    match /menu-items/{imageId} {
+      allow read: if true;
+      // Only authenticated users can upload/delete images
+      allow write: if request.auth != null;
+    }
+  }
+}

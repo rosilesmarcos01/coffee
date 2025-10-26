@@ -1,0 +1,18 @@
+{
+  "name": "Coffee Delivery App",
+  "short_name": "Coffee Delivery",
+  "description": "Night shift coffee delivery assistant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#d06224",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/coffee-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

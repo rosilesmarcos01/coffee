@@ -5,7 +5,7 @@ import { collection, query, where, getDocs, addDoc, updateDoc, doc } from 'fireb
 import { db } from '../config/firebase';
 import { format, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Coffee, Calendar, CheckCircle, Clock, LogOut, Settings } from 'lucide-react';
+import { Coffee, Calendar, CheckCircle, Clock, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Order, MenuItem } from '../types';
 
@@ -17,32 +17,25 @@ export default function DashboardPage() {
   const [pastOrders, setPastOrders] = useState<Order[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string>('');
   const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   useEffect(() => {
     loadTodayShift();
     loadOrders();
     loadMenuItems();
-    
-    // Update time every minute
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
-    
-    return () => clearInterval(timer);
   }, [user]);
 
   const loadTodayShift = () => {
     const now = new Date();
     const today = startOfDay(now);
     
-    // Check if today is a shift day (Monday, Wednesday, or Saturday)
+    // Check if today is a shift day (Sunday, Monday, Wednesday, or Saturday)
     const todayDayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, 3 = Wednesday, 6 = Saturday
-    if (todayDayOfWeek === 1 || todayDayOfWeek === 3 || todayDayOfWeek === 6) {
+    if (todayDayOfWeek === 0 || todayDayOfWeek === 1 || todayDayOfWeek === 3 || todayDayOfWeek === 6) {
       setTodayShift(today);
     } else {
       setTodayShift(null);
@@ -125,6 +118,28 @@ export default function DashboardPage() {
     return 'Pedido registrado';
   };
 
+  const hasTriedItem = (itemId: string) => {
+    return orders.some(order => 
+      order.selectedItems && order.selectedItems.includes(itemId)
+    );
+  };
+
+  const categories = [
+    { id: 'all', label: 'Todos', value: 'all' },
+    { id: 'seasonal', label: 'Temporada', value: 'seasonal' },
+    { id: 'hot-coffee', label: 'Café Caliente', value: 'hot-coffee' },
+    { id: 'iced-coffee', label: 'Café Frío', value: 'iced-coffee' },
+    { id: 'cold-brew', label: 'Cold Brew', value: 'cold-brew' },
+    { id: 'frappuccino', label: 'Frappuccino', value: 'frappuccino-coffee' },
+  ];
+
+  const getFilteredMenuItems = () => {
+    if (selectedCategory === 'all') {
+      return menuItems.slice(0, 4);
+    }
+    return menuItems.filter(item => item.category === selectedCategory).slice(0, 4);
+  };
+
   const handleOrderForShift = (shiftDate: Date, orderType: 'surprise' | 'selected') => {
     if (orderType === 'selected') {
       navigate('/menu', { state: { shiftDate: format(shiftDate, 'yyyy-MM-dd') } });
@@ -138,7 +153,7 @@ export default function DashboardPage() {
 
     try {
       const dateString = format(shiftDate, 'yyyy-MM-dd');
-      const dayName = format(shiftDate, 'EEEE', { locale: es }).toLowerCase() as 'monday' | 'wednesday' | 'saturday';
+      const dayName = format(shiftDate, 'EEEE', { locale: es }).toLowerCase() as 'sunday' | 'monday' | 'wednesday' | 'saturday';
 
       await addDoc(collection(db, 'orders'), {
         userId: user.uid,
@@ -214,105 +229,126 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-coffee-600"></div>
+      <div className="flex items-center justify-center min-h-screen bg-pink-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-pink-50 pb-20">
       {/* Header */}
-      <header className="bg-gradient-to-r from-gray-800 via-gray-800 to-gray-900 shadow-xl border-b border-gray-700/50 backdrop-blur-sm sticky top-0 z-20">
-        <div className="max-w-4xl mx-auto px-4 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl shadow-lg">
-              <Coffee className="w-7 h-7 text-white" />
+      <header className="bg-gradient-to-r from-pink-400 to-pink-500 shadow-lg sticky top-0 z-20 -mt-[env(safe-area-inset-top)] pt-[env(safe-area-inset-top)]">
+        <div className="max-w-4xl mx-auto px-6 py-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <button className="text-white">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">Night Shift Assistant</h1>
-              <p className="text-xs text-gray-400 mt-0.5">Tu café, siempre listo</p>
+            <div className="text-center flex-1">
+              <h1 className="text-xl font-bold text-white">Night Shift</h1>
+              <p className="text-xs text-pink-100">Home</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {user?.email === 'rosilesmarcos99@gmail.com' && (
+                <button 
+                  className="text-white p-2 hover:bg-white/20 rounded-full transition-all"
+                  onClick={() => navigate('/admin')}
+                  title="Admin"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+              )}
+              <button 
+                className="text-white p-2 hover:bg-white/20 rounded-full transition-all"
+                onClick={() => signOut()}
+                title="Cerrar sesión"
+              >
+                <LogOut className="w-6 h-6" />
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {user?.email === 'rosilesmarcos99@gmail.com' && (
-              <button
-                onClick={() => navigate('/admin')}
-                className="p-2.5 text-emerald-500 hover:text-emerald-400 hover:bg-gray-700/50 rounded-xl transition-all"
-                title="Panel de administración"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-            )}
-            <button
-              onClick={() => signOut()}
-              className="p-2.5 text-gray-400 hover:text-gray-200 hover:bg-gray-700/50 rounded-xl transition-all"
-              title="Cerrar sesión"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+          
+          {/* Search Bar */}
+          <div className="relative">
+            <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search Coffee"
+              className="w-full pl-12 pr-4 py-3 bg-white rounded-xl text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-300"
+            />
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        {/* Greeting Section */}
-        <div className="mb-8">
-          <h2 className="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-            Hola, {user?.email?.split('@')[0]}
+      <main className="max-w-4xl mx-auto px-6 py-6">
+        {/* Greeting */}
+        <div className="bg-white rounded-2xl shadow-lg p-8 mb-6 border border-pink-100">
+          <h2 className="text-3xl font-bold text-gray-800 mb-3">
+            ¡Hola, <span className="text-pink-600">Gabriela!</span>
           </h2>
-          <p className="text-lg text-gray-400 flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            {currentTime.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true })} • {currentTime.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
+          <p className="text-base text-gray-600">
+            Bienvenida a tu Asistente de Guardia. ¿Qué se te antoja hoy?
           </p>
+        </div>
+
+        {/* Category Filters */}
+        <div className="flex gap-3 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              onClick={() => setSelectedCategory(category.value)}
+              className={`px-5 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-all ${
+                selectedCategory === category.value
+                  ? 'bg-gradient-to-r from-pink-400 to-pink-500 text-white shadow-md'
+                  : 'bg-white text-gray-700 shadow-sm hover:shadow-md'
+              }`}
+            >
+              {category.label}
+            </button>
+          ))}
         </div>
 
         {/* Today's Shift Section */}
-        <div className="mb-6">
-          <h3 className="text-2xl font-bold text-white mb-2">
-            Que se te antoja hoy?
-          </h3>
-          <p className="text-gray-400">
-            {todayShift ? 'Tu guardia nocturna' : 'No hay guardia programado para hoy'}
-          </p>
-        </div>
-
-        {todayShift ? (
-          <div className="mb-8">
+        {todayShift && (
+          <div className="mb-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Tu Turno de Hoy</h3>
             {(() => {
               const order = getOrderForShift(todayShift);
               
               return (
-                <div className="rounded-2xl shadow-xl p-6 border-2 bg-gradient-to-br from-gray-800 to-gray-900 border-coffee-600 overflow-hidden relative">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-coffee-600/10 rounded-full blur-3xl"></div>
-                  <div className="relative z-10">
-                    <div className="mb-4 inline-block px-4 py-1.5 bg-white text-gray-900 text-xs font-bold rounded-full shadow-lg">
-                      TURNO DE HOY
-                    </div>
-                    
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-coffee-600/20 rounded-xl">
-                          <Calendar className="w-6 h-6 text-coffee-500" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-white text-lg">
-                            {format(todayShift, "EEEE d 'de' MMMM", { locale: es })}
-                          </h3>
-                          <p className="text-sm text-gray-400">Turno nocturno</p>
-                        </div>
+                <div className="bg-white rounded-2xl shadow-lg p-6 border border-pink-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-pink-100 rounded-xl">
+                        <Calendar className="w-5 h-5 text-pink-600" />
                       </div>
+                      <div>
+                        <h3 className="font-bold text-gray-800 text-base">
+                          {format(todayShift, "EEEE d 'de' MMMM", { locale: es })}
+                        </h3>
+                        <p className="text-xs text-gray-500">Turno nocturno</p>
+                      </div>
+                    </div>
 
                     {order && (() => {
-                      let statusClass = 'bg-yellow-900/50 text-yellow-300 border border-yellow-700/50 backdrop-blur-sm';
+                      let statusClass = 'bg-yellow-100 text-yellow-700 border border-yellow-200';
                       let statusText = 'Pendiente';
                       
                       if (order.status === 'confirmed') {
-                        statusClass = 'bg-green-900/50 text-green-300 border border-green-700/50 backdrop-blur-sm';
+                        statusClass = 'bg-green-100 text-green-700 border border-green-200';
                         statusText = 'Confirmado';
                       } else if (order.status === 'delivered') {
-                        statusClass = 'bg-blue-900/50 text-blue-300 border border-blue-700/50 backdrop-blur-sm';
+                        statusClass = 'bg-blue-100 text-blue-700 border border-blue-200';
                         statusText = 'Entregado';
                       }
                       
@@ -325,9 +361,9 @@ export default function DashboardPage() {
                   </div>
 
                   {order && (
-                    <div className="mb-4 p-4 bg-gray-700/30 backdrop-blur-sm rounded-xl border border-gray-600/50">
-                      <p className="text-xs text-gray-400 mb-1 font-medium uppercase tracking-wide">Tu pedido:</p>
-                      <p className="text-sm font-medium text-white">
+                    <div className="mb-4 p-4 bg-pink-50 rounded-xl">
+                      <p className="text-xs text-pink-600 mb-1 font-medium uppercase tracking-wide">Tu pedido:</p>
+                      <p className="text-sm font-medium text-gray-800">
                         {getOrderSummary(order)}
                       </p>
                     </div>
@@ -337,14 +373,14 @@ export default function DashboardPage() {
                     <div className="space-y-3">
                       <button
                         onClick={() => handleOrderForShift(todayShift, 'surprise')}
-                        className="w-full py-4 px-4 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl font-bold hover:from-emerald-700 hover:to-emerald-800 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/50 relative z-10"
+                        className="w-full py-3.5 px-4 bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-xl font-bold hover:from-pink-500 hover:to-pink-600 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-md"
                       >
                         <Coffee className="w-5 h-5" />
                         Sorpréndeme
                       </button>
                       <button
                         onClick={() => handleOrderForShift(todayShift, 'selected')}
-                        className="w-full py-4 px-4 bg-gray-700 text-gray-200 rounded-xl font-semibold hover:bg-gray-600 active:scale-95 transition-all flex items-center justify-center gap-2 border border-gray-600 relative z-10"
+                        className="w-full py-3.5 px-4 bg-white text-pink-600 rounded-xl font-semibold hover:bg-pink-50 active:scale-95 transition-all flex items-center justify-center gap-2 border-2 border-pink-200"
                       >
                         <Calendar className="w-5 h-5" />
                         Ver Menú
@@ -355,7 +391,7 @@ export default function DashboardPage() {
                   {order && order.status === 'delivered' && (
                     <button
                       onClick={() => confirmDelivery(order.id)}
-                      className="w-full py-4 px-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-bold hover:from-green-700 hover:to-green-800 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg"
+                      className="w-full py-3.5 px-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-bold hover:from-green-600 hover:to-green-700 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-md"
                     >
                       <CheckCircle className="w-5 h-5" />
                       Confirmar que lo recibí
@@ -364,15 +400,11 @@ export default function DashboardPage() {
                   
                   {order && (order.status === 'pending' || order.status === 'ordered') && (
                     <div className="space-y-3">
-                      {/* Progress Bar */}
-                      <div className="bg-gray-700/30 backdrop-blur-sm rounded-xl overflow-hidden">
-                        <div className="h-2 bg-gradient-to-r from-coffee-600 via-coffee-500 to-coffee-600 animate-pulse relative overflow-hidden">
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
-                        </div>
+                      <div className="bg-pink-100 rounded-xl overflow-hidden">
+                        <div className="h-2 bg-gradient-to-r from-pink-400 via-pink-500 to-pink-400 animate-pulse"></div>
                       </div>
                       
-                      {/* Status Message */}
-                      <div className="flex items-center gap-2 text-gray-400 bg-gray-700/30 backdrop-blur-sm px-4 py-3 rounded-xl">
+                      <div className="flex items-center gap-2 text-gray-600 bg-pink-50 px-4 py-3 rounded-xl">
                         <Clock className="w-5 h-5 animate-pulse" />
                         <span className="text-sm font-medium">
                           {order.orderType === 'surprise' ? 'Sorpresa en camino' : 'Pedido en proceso'}
@@ -382,134 +414,207 @@ export default function DashboardPage() {
                   )}
 
                   {order && order.status === 'confirmed' && (
-                    <div className="flex items-center gap-2 text-green-400 bg-green-900/20 backdrop-blur-sm px-4 py-3 rounded-xl border border-green-700/50">
+                    <div className="flex items-center gap-2 text-green-700 bg-green-50 px-4 py-3 rounded-xl border border-green-200">
                       <CheckCircle className="w-5 h-5" />
                       <span className="text-sm font-medium">
                         Pedido Entregado
                       </span>
                     </div>
                   )}
-                  </div>
                 </div>
               );
             })()}
           </div>
-        ) : (
-          <div className="mb-8 rounded-2xl shadow-lg p-8 border-2 bg-gray-800/50 backdrop-blur-sm border-gray-700 text-center">
-            <Calendar className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-            <p className="text-gray-300 font-semibold text-lg">No hay turno programado para hoy</p>
-            <p className="text-sm text-gray-500 mt-2">Los turnos son Lunes, Miércoles y Sábados</p>
+        )}
+
+        {!todayShift && (
+          <div className="mb-6 bg-white rounded-2xl shadow-lg p-8 text-center">
+            <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-700 font-semibold text-lg">No hay turno programado para hoy</p>
+            <p className="text-sm text-gray-500 mt-2">Tus guardias son Domingo, Lunes, Miércoles y Sábados</p>
+            <p className="text-xs text-gray-500 mt-2">Sin embargo, siempre puedes hacer un pedido a otro punto de entrega</p>
           </div>
         )}
 
-        {/* Past Orders Section */}
+        {/* Menu Items Grid */}
         <div className="mb-6">
-          <h3 className="text-2xl font-bold text-white mb-2">
-            Pedidos Anteriores
-          </h3>
-          <p className="text-gray-400">
-            Tus últimas entregas
-          </p>
-        </div>
-
-        {pastOrders.length > 0 ? (
-          <div className="space-y-4 mb-8">
-            {pastOrders.map((order) => (
-              <div
-                key={order.id}
-                className="rounded-2xl shadow-lg p-6 border-2 bg-gray-800/80 backdrop-blur-sm border-gray-700 hover:border-gray-600 transition-all"
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-gray-800">Sugerencias Para Usted</h3>
+            <button
+              onClick={() => navigate('/menu')}
+              className="text-pink-600 text-sm font-semibold hover:text-pink-700 transition-colors"
+            >
+              Ver todo →
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {getFilteredMenuItems().map((item) => (
+              <button 
+                key={item.id}
+                className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all text-left w-full"
+                onClick={() => navigate('/menu')}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-coffee-600/20 rounded-xl">
-                      <Coffee className="w-6 h-6 text-coffee-600" />
+                <div className="aspect-square bg-gradient-to-br from-pink-100 to-pink-50 flex items-center justify-center relative overflow-hidden">
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-full h-full object-cover absolute inset-0"
+                      style={{ objectPosition: 'center', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <Coffee className="w-20 h-20 text-pink-400" />
+                  )}
+                </div>
+                <div className="p-5 h-[160px] flex flex-col">
+                  {hasTriedItem(item.id) ? (
+                    <div className="flex items-center gap-1 mb-2 flex-shrink-0">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span className="text-xs font-bold text-green-600">Ya lo has probado</span>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-white">
-                        {format(new Date(order.shiftDate), "EEEE d 'de' MMMM", { locale: es })}
-                      </h3>
-                      <p className="text-sm text-gray-400">Turno nocturno</p>
+                  ) : (
+                    <div className="flex items-center gap-1 mb-2 flex-shrink-0">
+                      <span className="text-xs font-bold text-pink-600 bg-pink-100 px-2 py-1 rounded-full">Nuevo para ti</span>
                     </div>
+                  )}
+                  <h4 className="font-bold text-gray-800 mb-2 text-base line-clamp-2 flex-shrink-0">{item.name}</h4>
+                  <p className="text-sm text-gray-500 mb-3 capitalize line-clamp-2 flex-1">{item.category.split('-').join(' ')}</p>
+                  <div className="flex items-center justify-end flex-shrink-0">
+                    <span className="bg-gradient-to-r from-pink-400 to-pink-500 text-white p-2 rounded-lg shadow-md">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </span>
                   </div>
-
-                  <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-green-900/50 text-green-300 border border-green-700/50 backdrop-blur-sm">
-                    Completado
-                  </span>
                 </div>
-
-                <div className="p-4 bg-gray-700/30 backdrop-blur-sm rounded-xl border border-gray-600/50">
-                  <p className="text-xs text-gray-400 mb-1 font-medium uppercase tracking-wide">Pedido:</p>
-                  <p className="text-sm font-medium text-white">
-                    {getOrderSummary(order)}
-                  </p>
-                </div>
-              </div>
+              </button>
             ))}
           </div>
-        ) : (
-          <div className="mb-8 rounded-2xl shadow-lg p-8 border-2 bg-gray-800/50 backdrop-blur-sm border-gray-700 text-center">
-            <Coffee className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-            <p className="text-gray-300 font-semibold mb-2">Aún no hay pedidos anteriores</p>
-            <p className="text-sm text-gray-500">
-              Tus pedidos completados aparecerán aquí una vez que los recibas
-            </p>
+        </div>
+
+        {/* Past Orders Section */}
+        {pastOrders.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Pedidos Anteriores</h3>
+            <div className="space-y-4">
+              {pastOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="bg-white rounded-2xl shadow-lg p-5 border border-pink-100"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-pink-100 rounded-xl">
+                        <Coffee className="w-5 h-5 text-pink-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-800 text-sm">
+                          {format(new Date(order.shiftDate), "EEEE d 'de' MMMM", { locale: es })}
+                        </h3>
+                        <p className="text-xs text-gray-500">Turno nocturno</p>
+                      </div>
+                    </div>
+
+                    <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">
+                      Completado
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-pink-50 rounded-xl">
+                    <p className="text-xs text-pink-600 mb-1 font-medium uppercase tracking-wide">Pedido:</p>
+                    <p className="text-sm font-medium text-gray-800">
+                      {getOrderSummary(order)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Quick Stats */}
-        <div className="mt-8 grid grid-cols-2 gap-4">
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-lg p-6 border border-gray-700">
-            <p className="text-sm text-gray-400 mb-2 font-medium">Cafés este mes</p>
-            <p className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-700 bg-clip-text text-transparent">
-              {orders.filter(o => o.status === 'confirmed').length}
-            </p>
+        {/* Banner */}
+        <div className="bg-gradient-to-r from-pink-100 to-pink-50 rounded-2xl p-6 mb-6 relative overflow-hidden shadow-sm">
+          <div className="relative z-10">
+            <h2 className="text-2xl font-bold text-gray-800 mb-1">
+              Entrega <span className="text-pink-600">Gratis!</span>
+            </h2>
+            <p className="text-sm text-gray-600 mb-1">En todas sus órdenes</p>
+            <p className="text-xs text-gray-500">Solo por bonita</p>
+            <p className="text-xs text-gray-500">NO aplican términos ni condiciones</p>
           </div>
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-lg p-6 border border-gray-700">
-            <p className="text-sm text-gray-400 mb-2 font-medium">Pedidos completados</p>
-            <p className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-700 bg-clip-text text-transparent">
-              {pastOrders.length}
-            </p>
+          <div className="absolute right-4 top-1/2 transform -translate-y-1/2 opacity-20">
+            <Coffee className="w-32 h-32 text-pink-600" />
           </div>
         </div>
       </main>
 
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30">
+        <div className="max-w-4xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-around">
+            <button className="flex flex-col items-center gap-1 text-pink-500">
+              <div className="bg-gradient-to-r from-pink-400 to-pink-500 p-2.5 rounded-xl">
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                </svg>
+              </div>
+            </button>
+            <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+            </button>
+            <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </button>
+            <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </nav>
+
       {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl shadow-2xl max-w-md w-full border-2 border-emerald-600/50 overflow-hidden animate-in fade-in zoom-in duration-300">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
             <div className="p-8">
               {/* Success Icon */}
               <div className="mb-6 flex justify-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center shadow-lg shadow-emerald-900/50">
+                <div className="w-20 h-20 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
                   <Coffee className="w-12 h-12 text-white" />
                 </div>
               </div>
 
               {/* Title */}
-              <h2 className="text-2xl font-bold text-white text-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">
                 ¡Sorpresa en Camino!
               </h2>
 
               {/* What happens next */}
-              <div className="mb-6 p-5 bg-gray-700/30 backdrop-blur-sm rounded-2xl border border-gray-600/50">
-                <h3 className="text-sm font-bold text-emerald-400 mb-3 uppercase tracking-wide">
+              <div className="mb-6 p-5 bg-pink-50 rounded-2xl border border-pink-100">
+                <h3 className="text-sm font-bold text-pink-600 mb-3 uppercase tracking-wide">
                   ¿Qué sigue?
                 </h3>
-                <ul className="space-y-3 text-sm text-gray-300">
+                <ul className="space-y-3 text-sm text-gray-700">
                   <li className="flex items-start gap-3">
-                    <span className="text-emerald-500 font-bold mt-0.5">1.</span>
+                    <span className="text-pink-500 font-bold mt-0.5">1.</span>
                     <span>Seleccionaremos algo especial para ti</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-emerald-500 font-bold mt-0.5">2.</span>
+                    <span className="text-pink-500 font-bold mt-0.5">2.</span>
                     <span>Recibirás tu café durante tu turno nocturno</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-emerald-500 font-bold mt-0.5">3.</span>
+                    <span className="text-pink-500 font-bold mt-0.5">3.</span>
                     <span>Te notificaremos cuando esté listo para recoger</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="text-emerald-500 font-bold mt-0.5">4.</span>
+                    <span className="text-pink-500 font-bold mt-0.5">4.</span>
                     <span>Confirma la recepción cuando lo tengas</span>
                   </li>
                 </ul>
@@ -518,7 +623,7 @@ export default function DashboardPage() {
               {/* Close Button */}
               <button
                 onClick={handleCloseModal}
-                className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-2xl font-bold text-lg hover:from-emerald-700 hover:to-emerald-800 active:scale-95 transition-all shadow-lg shadow-emerald-900/50"
+                className="w-full py-4 px-6 bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-2xl font-bold text-lg hover:from-pink-500 hover:to-pink-600 active:scale-95 transition-all shadow-md"
               >
                 Entendido
               </button>
@@ -530,20 +635,20 @@ export default function DashboardPage() {
       {/* Feedback Modal */}
       {showFeedbackModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl shadow-2xl max-w-md w-full border-2 border-coffee-600/50 overflow-hidden animate-in fade-in zoom-in duration-300">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
             <div className="p-8">
               {/* Icon */}
               <div className="mb-6 flex justify-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-coffee-500 to-coffee-700 rounded-full flex items-center justify-center shadow-lg shadow-coffee-900/50">
+                <div className="w-20 h-20 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
                   <CheckCircle className="w-12 h-12 text-white" />
                 </div>
               </div>
 
               {/* Title */}
-              <h2 className="text-2xl font-bold text-white text-center mb-2">
+              <h2 className="text-2xl font-bold text-gray-800 text-center mb-2">
                 ¿Cómo estuvo?
               </h2>
-              <p className="text-gray-400 text-center mb-6 text-sm">
+              <p className="text-gray-600 text-center mb-6 text-sm">
                 Espero que le guste (yo).
               </p>
 
@@ -553,7 +658,7 @@ export default function DashboardPage() {
                   value={feedbackMessage}
                   onChange={(e) => setFeedbackMessage(e.target.value)}
                   placeholder="Deja un comentario..."
-                  className="w-full h-32 px-4 py-3 bg-gray-700/30 backdrop-blur-sm border border-gray-600/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-coffee-500 focus:ring-2 focus:ring-coffee-500/50 transition-all resize-none"
+                  className="w-full h-32 px-4 py-3 bg-pink-50 border border-pink-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-all resize-none"
                   maxLength={500}
                 />
                 <p className="text-xs text-gray-500 mt-2 text-right">
@@ -565,13 +670,13 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 <button
                   onClick={submitFeedback}
-                  className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-2xl font-bold text-lg hover:from-emerald-700 hover:to-emerald-800 active:scale-95 transition-all shadow-lg shadow-emerald-900/50"
+                  className="w-full py-4 px-6 bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-2xl font-bold text-lg hover:from-pink-500 hover:to-pink-600 active:scale-95 transition-all shadow-md"
                 >
                   Enviar Comentario
                 </button>
                 <button
                   onClick={skipFeedback}
-                  className="w-full py-3 px-6 bg-gray-700/50 text-gray-300 rounded-2xl font-semibold hover:bg-gray-700 active:scale-95 transition-all border border-gray-600"
+                  className="w-full py-3 px-6 bg-pink-50 text-pink-600 rounded-2xl font-semibold hover:bg-pink-100 active:scale-95 transition-all border border-pink-200"
                 >
                   Omitir
                 </button>

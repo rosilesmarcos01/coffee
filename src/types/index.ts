@@ -16,7 +16,7 @@ export interface Order {
   id: string;
   userId: string;
   shiftDate: string; // ISO date string (YYYY-MM-DD)
-  shiftDay: 'monday' | 'wednesday' | 'saturday';
+  shiftDay: 'sunday' | 'monday' | 'wednesday' | 'saturday';
   orderType: 'surprise' | 'selected';
   selectedItems?: string[]; // MenuItem IDs
   status: 'pending' | 'ordered' | 'delivered' | 'confirmed';

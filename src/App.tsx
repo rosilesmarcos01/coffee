@@ -5,7 +5,12 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import MenuPage from './pages/MenuPage';
 import AdminPage from './pages/AdminPage';
+import AdminMenuPage from './pages/AdminMenuPage';
+import MaintenanceMode from './components/MaintenanceMode';
 import { ReactNode } from 'react';
+
+// Set to true to enable maintenance mode
+const MAINTENANCE_MODE = false;
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -21,6 +26,11 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 }
 
 function App() {
+  // Show maintenance mode if enabled
+  if (MAINTENANCE_MODE) {
+    return <MaintenanceMode />;
+  }
+
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -40,6 +50,11 @@ function App() {
           <Route path="/admin" element={
             <ProtectedRoute>
               <AdminPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/menu" element={
+            <ProtectedRoute>
+              <AdminMenuPage />
             </ProtectedRoute>
           } />
         </Routes>
