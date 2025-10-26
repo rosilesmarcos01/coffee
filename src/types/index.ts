@@ -1,5 +1,8 @@
 import { Timestamp } from 'firebase/firestore';
 
+export type DrinkSize = 'tall' | 'grande' | 'venti';
+export type MilkType = 'whole' | '2%' | 'nonfat' | 'almond' | 'coconut' | 'oat' | 'soy' | 'none';
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -9,7 +12,15 @@ export interface MenuItem {
   description: string;
   imageUrl?: string;
   available: boolean;
+  hasSizeOptions?: boolean; // Indicates if this item has size options
+  hasMilkOptions?: boolean; // Indicates if this item has milk options
   createdAt: Timestamp;
+}
+
+export interface OrderItemSelection {
+  itemId: string;
+  size?: DrinkSize;
+  milkType?: MilkType;
 }
 
 export interface Order {
@@ -18,7 +29,8 @@ export interface Order {
   shiftDate: string; // ISO date string (YYYY-MM-DD)
   shiftDay: 'sunday' | 'monday' | 'wednesday' | 'saturday';
   orderType: 'surprise' | 'selected';
-  selectedItems?: string[]; // MenuItem IDs
+  selectedItems?: string[]; // MenuItem IDs (legacy support)
+  itemSelections?: OrderItemSelection[]; // Detailed selections with size and milk
   status: 'pending' | 'ordered' | 'delivered' | 'confirmed';
   deliveryTime?: Timestamp;
   confirmedAt?: Timestamp;

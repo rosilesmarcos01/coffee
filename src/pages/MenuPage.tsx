@@ -3,9 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { ArrowLeft, ShoppingCart, Coffee } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Coffee, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { MenuItem } from '../types';
+import { MenuItem, OrderItemSelection, DrinkSize, MilkType } from '../types';
 
 export default function MenuPage() {
   const { user } = useAuth();
@@ -14,10 +14,16 @@ export default function MenuPage() {
   const shiftDate = (location.state as { shiftDate?: string })?.shiftDate;
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [selectedItems, setSelectedItems] = useState<OrderItemSelection[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [customizationModal, setCustomizationModal] = useState<{
+    item: MenuItem | null;
+    isOpen: boolean;
+  }>({ item: null, isOpen: false });
+  const [tempSize, setTempSize] = useState<DrinkSize>('grande');
+  const [tempMilkType, setTempMilkType] = useState<MilkType>('whole');
 
   useEffect(() => {
     loadMenu();
@@ -33,7 +39,27 @@ export default function MenuPage() {
         ...doc.data()
       })) as MenuItem[];
       
-      setMenuItems(items.filter(item => item.available));
+      // Mark which items have size/milk options based on category
+      const processedItems = items.map(item => {
+        const drinkCategories = [
+          'hot-coffee', 'iced-coffee', 'cold-brew', 
+          'frappuccino-coffee', 'frappuccino-cream', 
+          'shaken-espresso', 'hot-tea', 'iced-tea', 'seasonal'
+        ];
+        
+        const needsMilk = [
+          'hot-coffee', 'iced-coffee', 'cold-brew',
+          'frappuccino-coffee', 'shaken-espresso', 'seasonal'
+        ];
+        
+        return {
+          ...item,
+          hasSizeOptions: drinkCategories.includes(item.category),
+          hasMilkOptions: needsMilk.includes(item.category)
+        };
+      });
+      
+      setMenuItems(processedItems.filter(item => item.available));
     } catch (error) {
       toast.error('Error al cargar el menú');
       console.error(error);
@@ -42,12 +68,48 @@ export default function MenuPage() {
     }
   };
 
-  const toggleItem = (itemId: string) => {
-    setSelectedItems(prev => 
-      prev.includes(itemId)
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
+  const handleItemClick = (item: MenuItem) => {
+    // Check if item requires customization
+    if (item.hasSizeOptions || item.hasMilkOptions) {
+      // Open customization modal
+      setTempSize('grande');
+      setTempMilkType('whole');
+      setCustomizationModal({ item, isOpen: true });
+    } else {
+      // For food items, just toggle selection
+      toggleItem(item.id);
+    }
+  };
+
+  const toggleItem = (itemId: string, size?: DrinkSize, milkType?: MilkType) => {
+    setSelectedItems(prev => {
+      const existingIndex = prev.findIndex(item => item.itemId === itemId);
+      
+      if (existingIndex >= 0) {
+        // Remove item if already selected
+        return prev.filter(item => item.itemId !== itemId);
+      } else {
+        // Add new item with customization
+        return [...prev, { itemId, size, milkType }];
+      }
+    });
+  };
+
+  const confirmCustomization = () => {
+    if (!customizationModal.item) return;
+    
+    const item = customizationModal.item;
+    toggleItem(
+      item.id,
+      item.hasSizeOptions ? tempSize : undefined,
+      item.hasMilkOptions ? tempMilkType : undefined
     );
+    
+    setCustomizationModal({ item: null, isOpen: false });
+  };
+
+  const isItemSelected = (itemId: string) => {
+    return selectedItems.some(item => item.itemId === itemId);
   };
 
   const handleSubmit = async () => {
@@ -74,7 +136,8 @@ export default function MenuPage() {
         shiftDate,
         shiftDay: dayName,
         orderType: 'selected',
-        selectedItems,
+        itemSelections: selectedItems,
+        selectedItems: selectedItems.map(item => item.itemId), // Keep for backward compatibility
         status: 'pending',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -231,9 +294,9 @@ export default function MenuPage() {
           {getFilteredMenuItems().map((item) => (
             <button
               key={`${item.id}-${selectedCategory}`}
-              onClick={() => toggleItem(item.id)}
+              onClick={() => handleItemClick(item)}
               className={`rounded-2xl overflow-hidden transition-all text-left w-full relative ${
-                selectedItems.includes(item.id)
+                isItemSelected(item.id)
                   ? 'shadow-xl ring-2 ring-pink-400'
                   : 'shadow-lg hover:shadow-xl'
               }`}
@@ -257,7 +320,7 @@ export default function MenuPage() {
                 ) : (
                   <Coffee className="w-20 h-20 text-white" />
                 )}
-                {selectedItems.includes(item.id) && (
+                {isItemSelected(item.id) && (
                   <div className="absolute top-2 right-2 w-8 h-8 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
                     <svg className="w-5 h-5 text-white" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
                       <path d="M5 13l4 4L19 7"></path>
@@ -353,6 +416,105 @@ export default function MenuPage() {
               >
                 Entendido
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customization Modal */}
+      {customizationModal.isOpen && customizationModal.item && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Personaliza tu bebida
+                </h2>
+                <button
+                  onClick={() => setCustomizationModal({ item: null, isOpen: false })}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-all"
+                >
+                  <X className="w-6 h-6 text-gray-600" />
+                </button>
+              </div>
+
+              {/* Item Name */}
+              <div className="mb-6 p-4 bg-pink-50 rounded-xl border border-pink-100">
+                <h3 className="font-bold text-gray-800">{customizationModal.item.name}</h3>
+                <p className="text-sm text-gray-600 mt-1">{customizationModal.item.description}</p>
+              </div>
+
+              {/* Size Selection */}
+              {customizationModal.item.hasSizeOptions && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">Tamaño</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(['tall', 'grande', 'venti'] as const).map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => setTempSize(size)}
+                        className={`py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+                          tempSize === size
+                            ? 'bg-gradient-to-r from-pink-400 to-pink-500 text-white shadow-md'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {size === 'tall' && 'Tall (12 oz)'}
+                        {size === 'grande' && 'Grande (16 oz)'}
+                        {size === 'venti' && 'Venti (20 oz)'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Milk Selection */}
+              {customizationModal.item.hasMilkOptions && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">Tipo de leche</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {([
+                      { value: 'whole', label: 'Entera' },
+                      { value: '2%', label: 'Deslactosada' },
+                      { value: 'nonfat', label: 'Descremada' },
+                      { value: 'almond', label: 'Almendra' },
+                      { value: 'coconut', label: 'Coco' },
+                      { value: 'oat', label: 'Avena' },
+                      { value: 'soy', label: 'Soya' },
+                      { value: 'none', label: 'Sin leche' }
+                    ] as const).map((milk) => (
+                      <button
+                        key={milk.value}
+                        onClick={() => setTempMilkType(milk.value)}
+                        className={`py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+                          tempMilkType === milk.value
+                            ? 'bg-gradient-to-r from-pink-400 to-pink-500 text-white shadow-md'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {milk.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCustomizationModal({ item: null, isOpen: false })}
+                  className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 active:scale-95 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmCustomization}
+                  className="flex-1 py-3 px-4 bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-xl font-bold hover:from-pink-500 hover:to-pink-600 active:scale-95 transition-all shadow-lg"
+                >
+                  Agregar
+                </button>
+              </div>
             </div>
           </div>
         </div>

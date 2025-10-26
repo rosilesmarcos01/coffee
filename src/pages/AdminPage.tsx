@@ -124,6 +124,43 @@ export default function AdminPage() {
       return 'Sorpresa';
     }
     
+    // Try to use itemSelections first (new format with customization)
+    if (order.itemSelections && order.itemSelections.length > 0) {
+      return order.itemSelections
+        .map(selection => {
+          const item = menuItems[selection.itemId];
+          if (!item) return 'Item desconocido';
+          
+          let details = item.name;
+          const customizations: string[] = [];
+          
+          if (selection.size) {
+            customizations.push(selection.size.charAt(0).toUpperCase() + selection.size.slice(1));
+          }
+          if (selection.milkType) {
+            const milkLabels: Record<string, string> = {
+              'whole': 'Leche entera',
+              '2%': 'Leche 2%',
+              'nonfat': 'Descremada',
+              'almond': 'Almendra',
+              'coconut': 'Coco',
+              'oat': 'Avena',
+              'soy': 'Soya',
+              'none': 'Sin leche'
+            };
+            customizations.push(milkLabels[selection.milkType] || selection.milkType);
+          }
+          
+          if (customizations.length > 0) {
+            details += ` (${customizations.join(', ')})`;
+          }
+          
+          return details;
+        })
+        .join(' • ');
+    }
+    
+    // Fallback to old format (selectedItems only)
     if (order.selectedItems && order.selectedItems.length > 0) {
       return order.selectedItems
         .map(itemId => menuItems[itemId]?.name || 'Item desconocido')

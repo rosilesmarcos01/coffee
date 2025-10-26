@@ -10,7 +10,7 @@ import MaintenanceMode from './components/MaintenanceMode';
 import { ReactNode } from 'react';
 
 // Set to true to enable maintenance mode
-const MAINTENANCE_MODE = false;
+const MAINTENANCE_MODE = true;
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
