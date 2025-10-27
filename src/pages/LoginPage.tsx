@@ -92,9 +92,9 @@ export default function LoginPage() {
           {/* Sign Up Link */}
           <div className="text-center mt-8">
             <p className="text-white/90 text-sm">
-              Don't have an account?{' '}
+            {' '}
               <button className="text-white underline hover:text-white/80 transition-colors">
-                Sign Up Here
+                
               </button>
             </p>
           </div>
