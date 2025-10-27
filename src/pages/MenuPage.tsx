@@ -18,7 +18,10 @@ export default function MenuPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const locationState = location.state as MenuLocationState;
-  const shiftDate = locationState?.shiftDate;
+  
+  // Use provided shiftDate or default to today
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  const shiftDate = locationState?.shiftDate || today;
   const existingOrderId = locationState?.orderId;
   const existingItems = locationState?.existingItems || [];
 
@@ -127,11 +130,6 @@ export default function MenuPage() {
       return;
     }
 
-    if (!shiftDate) {
-      toast.error('No se encontró la fecha del turno');
-      return;
-    }
-
     if (selectedItems.length === 0) {
       toast.error('Selecciona al menos un item');
       return;
@@ -199,8 +197,8 @@ export default function MenuPage() {
   };
 
   const createSurpriseOrder = async () => {
-    if (!user || !shiftDate) {
-      toast.error('No se encontró la información del turno');
+    if (!user) {
+      toast.error('Usuario no autenticado');
       return;
     }
 
