@@ -33,9 +33,9 @@ export default function DashboardPage() {
     const now = new Date();
     const today = startOfDay(now);
     
-    // Check if today is a shift day (Sunday, Monday, Wednesday, or Saturday)
-    const todayDayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, 3 = Wednesday, 6 = Saturday
-    if (todayDayOfWeek === 0 || todayDayOfWeek === 1 || todayDayOfWeek === 3 || todayDayOfWeek === 6) {
+    // Check if today is a shift day (Monday, Wednesday, or Saturday)
+    const todayDayOfWeek = now.getDay(); // 1 = Monday, 3 = Wednesday, 6 = Saturday
+    if (todayDayOfWeek === 1 || todayDayOfWeek === 3 || todayDayOfWeek === 6) {
       setTodayShift(today);
     } else {
       setTodayShift(null);
@@ -120,7 +120,7 @@ export default function DashboardPage() {
 
   const hasTriedItem = (itemId: string) => {
     return orders.some(order => 
-      order.selectedItems && order.selectedItems.includes(itemId)
+      order.selectedItems?.includes(itemId)
     );
   };
 
@@ -134,10 +134,13 @@ export default function DashboardPage() {
   ];
 
   const getFilteredMenuItems = () => {
+    // Filter out disabled items first
+    const availableItems = menuItems.filter(item => item.available);
+    
     if (selectedCategory === 'all') {
-      return menuItems.slice(0, 4);
+      return availableItems.slice(0, 4);
     }
-    return menuItems.filter(item => item.category === selectedCategory).slice(0, 4);
+    return availableItems.filter(item => item.category === selectedCategory).slice(0, 4);
   };
 
   const handleOrderForShift = (shiftDate: Date, orderType: 'surprise' | 'selected') => {
@@ -153,17 +156,25 @@ export default function DashboardPage() {
 
     try {
       const dateString = format(shiftDate, 'yyyy-MM-dd');
-      const dayName = format(shiftDate, 'EEEE', { locale: es }).toLowerCase() as 'sunday' | 'monday' | 'wednesday' | 'saturday';
+      const dayOfWeek = shiftDate.getDay();
+      const isShift = dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 6; // Monday, Wednesday, Saturday
+      const dayName = isShift ? format(shiftDate, 'EEEE', { locale: es }).toLowerCase() as 'monday' | 'wednesday' | 'saturday' : undefined;
 
-      await addDoc(collection(db, 'orders'), {
+      const orderData: any = {
         userId: user.uid,
         shiftDate: dateString,
-        shiftDay: dayName,
+        isShiftDay: isShift,
         orderType: 'surprise',
         status: 'pending',
         createdAt: new Date(),
         updatedAt: new Date(),
-      });
+      };
+
+      if (dayName) {
+        orderData.shiftDay = dayName;
+      }
+
+      await addDoc(collection(db, 'orders'), orderData);
 
       setShowSuccessModal(true);
       loadOrders();
@@ -431,8 +442,14 @@ export default function DashboardPage() {
           <div className="mb-6 bg-white rounded-2xl shadow-lg p-8 text-center">
             <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-700 font-semibold text-lg">No hay turno programado para hoy</p>
-            <p className="text-sm text-gray-500 mt-2">Tus guardias son Domingo, Lunes, Miércoles y Sábados</p>
-            <p className="text-xs text-gray-500 mt-2">Sin embargo, siempre puedes hacer un pedido a otro punto de entrega</p>
+            <p className="text-sm text-gray-500 mt-2">Tus guardias son Lunes, Miércoles y Sábados</p>
+            <p className="text-xs text-gray-500 mt-2">Sin embargo, siempre puedes hacer un pedido para cualquier día</p>
+            <button
+              onClick={() => navigate('/menu')}
+              className="mt-4 px-6 py-3 bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-xl font-bold hover:from-pink-500 hover:to-pink-600 active:scale-95 transition-all shadow-md"
+            >
+              Hacer un pedido
+            </button>
           </div>
         )}
 
@@ -559,20 +576,17 @@ export default function DashboardPage() {
                 </svg>
               </div>
             </button>
-            <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
+            <button 
+              onClick={() => navigate('/order-history')}
+              className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600"
+            >
+              <Clock className="w-6 h-6" />
             </button>
-            <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-            </button>
-            <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
+            <button 
+              onClick={() => navigate('/shifts')}
+              className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600"
+            >
+              <Calendar className="w-6 h-6" />
             </button>
           </div>
         </div>

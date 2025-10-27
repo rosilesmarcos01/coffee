@@ -26,8 +26,9 @@ export interface OrderItemSelection {
 export interface Order {
   id: string;
   userId: string;
-  shiftDate: string; // ISO date string (YYYY-MM-DD)
-  shiftDay: 'sunday' | 'monday' | 'wednesday' | 'saturday';
+  shiftDate: string; // ISO date string (YYYY-MM-DD) - can be any date now
+  shiftDay?: 'monday' | 'wednesday' | 'saturday'; // Optional - only for actual shift days
+  isShiftDay: boolean; // Whether this is an official shift day
   orderType: 'surprise' | 'selected';
   selectedItems?: string[]; // MenuItem IDs (legacy support)
   itemSelections?: OrderItemSelection[]; // Detailed selections with size and milk
@@ -35,6 +36,8 @@ export interface Order {
   deliveryTime?: Timestamp;
   confirmedAt?: Timestamp;
   feedback?: string; // User feedback/message after confirmation
+  courierComment?: string; // Message for the courier
+  customDeliveryAddress?: string; // Custom address for non-shift day orders
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

@@ -1,20 +1,29 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { ArrowLeft, ShoppingCart, Coffee, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MenuItem, OrderItemSelection, DrinkSize, MilkType } from '../types';
 
+interface MenuLocationState {
+  shiftDate?: string;
+  orderId?: string;
+  existingItems?: OrderItemSelection[];
+}
+
 export default function MenuPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const shiftDate = (location.state as { shiftDate?: string })?.shiftDate;
+  const locationState = location.state as MenuLocationState;
+  const shiftDate = locationState?.shiftDate;
+  const existingOrderId = locationState?.orderId;
+  const existingItems = locationState?.existingItems || [];
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [selectedItems, setSelectedItems] = useState<OrderItemSelection[]>([]);
+  const [selectedItems, setSelectedItems] = useState<OrderItemSelection[]>(existingItems);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -129,21 +138,60 @@ export default function MenuPage() {
     }
 
     try {
-      const dayName = new Date(shiftDate).toLocaleDateString('es', { weekday: 'long' }) as 'sunday' | 'monday' | 'wednesday' | 'saturday';
+      const date = new Date(shiftDate);
+      const dayOfWeek = date.getDay();
+      const isShift = dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 6; // Monday, Wednesday, Saturday
+      const dayName = isShift ? date.toLocaleDateString('es', { weekday: 'long' }) as 'monday' | 'wednesday' | 'saturday' : undefined;
 
-      await addDoc(collection(db, 'orders'), {
-        userId: user.uid,
-        shiftDate,
-        shiftDay: dayName,
-        orderType: 'selected',
-        itemSelections: selectedItems,
-        selectedItems: selectedItems.map(item => item.itemId), // Keep for backward compatibility
-        status: 'pending',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      // Clean up item selections to remove undefined values for Firestore
+      const cleanedItemSelections = selectedItems.map(item => {
+        const cleaned: OrderItemSelection = { itemId: item.itemId };
+        if (item.size !== undefined) cleaned.size = item.size;
+        if (item.milkType !== undefined) cleaned.milkType = item.milkType;
+        return cleaned;
       });
 
-      setShowSuccessModal(true);
+      let orderId = existingOrderId;
+
+      if (existingOrderId) {
+        // Update existing order
+        const orderRef = doc(db, 'orders', existingOrderId);
+        await updateDoc(orderRef, {
+          itemSelections: cleanedItemSelections,
+          selectedItems: selectedItems.map(item => item.itemId),
+          updatedAt: new Date(),
+        });
+        toast.success('Pedido actualizado');
+      } else {
+        // Create new order
+        const orderData: any = {
+          userId: user.uid,
+          shiftDate,
+          isShiftDay: isShift,
+          orderType: 'selected',
+          itemSelections: cleanedItemSelections,
+          selectedItems: selectedItems.map(item => item.itemId),
+          status: 'pending',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        if (dayName) {
+          orderData.shiftDay = dayName;
+        }
+
+        const orderRef = await addDoc(collection(db, 'orders'), orderData);
+        orderId = orderRef.id;
+      }
+
+      // Navigate to order summary page with order details
+      navigate('/order-summary', {
+        state: {
+          orderId,
+          selectedItems: cleanedItemSelections,
+          shiftDate
+        }
+      });
     } catch (error) {
       toast.error('Error al crear el pedido');
       console.error(error);
@@ -157,17 +205,26 @@ export default function MenuPage() {
     }
 
     try {
-      const dayName = new Date(shiftDate).toLocaleDateString('es', { weekday: 'long' }) as 'sunday' | 'monday' | 'wednesday' | 'saturday';
+      const date = new Date(shiftDate);
+      const dayOfWeek = date.getDay();
+      const isShift = dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 6; // Monday, Wednesday, Saturday
+      const dayName = isShift ? date.toLocaleDateString('es', { weekday: 'long' }) as 'monday' | 'wednesday' | 'saturday' : undefined;
 
-      await addDoc(collection(db, 'orders'), {
+      const orderData: any = {
         userId: user.uid,
         shiftDate,
-        shiftDay: dayName,
+        isShiftDay: isShift,
         orderType: 'surprise',
         status: 'pending',
         createdAt: new Date(),
         updatedAt: new Date(),
-      });
+      };
+
+      if (dayName) {
+        orderData.shiftDay = dayName;
+      }
+
+      await addDoc(collection(db, 'orders'), orderData);
 
       toast.success('¡Sorpresa creada! Prepárate para algo especial');
       navigate('/');
@@ -219,15 +276,25 @@ export default function MenuPage() {
       <header className="bg-gradient-to-r from-pink-400 to-pink-500 shadow-lg sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-6 py-5 flex items-center justify-between">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate(existingOrderId ? '/order-summary' : '/', {
+              state: existingOrderId ? {
+                orderId: existingOrderId,
+                selectedItems: existingItems,
+                shiftDate
+              } : undefined
+            })}
             className="p-2 hover:bg-white/20 rounded-full text-white transition-all active:scale-95"
             title="Volver"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div className="text-center flex-1">
-            <h1 className="text-xl font-bold text-white">Menú Completo</h1>
-            <p className="text-xs text-pink-100">Selecciona tus favoritos</p>
+            <h1 className="text-xl font-bold text-white">
+              {existingOrderId ? 'Agregar más items' : 'Menú Completo'}
+            </h1>
+            <p className="text-xs text-pink-100">
+              {existingOrderId ? 'Selecciona items adicionales' : 'Selecciona tus favoritos'}
+            </p>
           </div>
           <div className="w-10" />
         </div>
@@ -359,7 +426,9 @@ export default function MenuPage() {
               className="w-full px-6 py-4 bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-2xl font-bold text-lg hover:from-pink-500 hover:to-pink-600 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-lg"
             >
               <ShoppingCart className="w-6 h-6" />
-              <span>Confirmar Pedido ({selectedItems.length})</span>
+              <span>
+                {existingOrderId ? `Actualizar Pedido (${selectedItems.length})` : `Confirmar Pedido (${selectedItems.length})`}
+              </span>
             </button>
           </div>
         </div>

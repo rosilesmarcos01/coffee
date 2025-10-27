@@ -4,15 +4,18 @@ import { Toaster } from 'react-hot-toast';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import MenuPage from './pages/MenuPage';
+import OrderSummaryPage from './pages/OrderSummaryPage';
+import OrderHistoryPage from './pages/OrderHistoryPage';
+import ShiftsPage from './pages/ShiftsPage';
 import AdminPage from './pages/AdminPage';
 import AdminMenuPage from './pages/AdminMenuPage';
 import MaintenanceMode from './components/MaintenanceMode';
 import { ReactNode } from 'react';
 
 // Set to true to enable maintenance mode
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
-function ProtectedRoute({ children }: { children: ReactNode }) {
+function ProtectedRoute({ children }: Readonly<{ children: ReactNode }>) {
   const { user, loading } = useAuth();
   const location = useLocation();
   
@@ -45,6 +48,21 @@ function App() {
           <Route path="/menu" element={
             <ProtectedRoute>
               <MenuPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/order-summary" element={
+            <ProtectedRoute>
+              <OrderSummaryPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/order-history" element={
+            <ProtectedRoute>
+              <OrderHistoryPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/shifts" element={
+            <ProtectedRoute>
+              <ShiftsPage />
             </ProtectedRoute>
           } />
           <Route path="/admin" element={
