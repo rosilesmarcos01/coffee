@@ -13,6 +13,15 @@ interface MenuLocationState {
   existingItems?: OrderItemSelection[];
 }
 
+// Helper function to check if a date is a shift day (Monday, Wednesday, Saturday)
+// Parses YYYY-MM-DD as local date to avoid timezone issues
+const isShiftDay = (dateString: string): boolean => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day); // month is 0-indexed
+  const dayOfWeek = date.getDay();
+  return dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 6; // Monday, Wednesday, Saturday
+};
+
 export default function MenuPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -136,9 +145,10 @@ export default function MenuPage() {
     }
 
     try {
-      const date = new Date(shiftDate);
-      const dayOfWeek = date.getDay();
-      const isShift = dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 6; // Monday, Wednesday, Saturday
+      // Parse date correctly to avoid timezone issues
+      const [year, month, day] = shiftDate.split('-').map(Number);
+      const date = new Date(year, month - 1, day); // month is 0-indexed
+      const isShift = isShiftDay(shiftDate);
       const dayName = isShift ? date.toLocaleDateString('es', { weekday: 'long' }) as 'monday' | 'wednesday' | 'saturday' : undefined;
 
       // Clean up item selections to remove undefined values for Firestore
@@ -203,9 +213,10 @@ export default function MenuPage() {
     }
 
     try {
-      const date = new Date(shiftDate);
-      const dayOfWeek = date.getDay();
-      const isShift = dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 6; // Monday, Wednesday, Saturday
+      // Parse date correctly to avoid timezone issues
+      const [year, month, day] = shiftDate.split('-').map(Number);
+      const date = new Date(year, month - 1, day); // month is 0-indexed
+      const isShift = isShiftDay(shiftDate);
       const dayName = isShift ? date.toLocaleDateString('es', { weekday: 'long' }) as 'monday' | 'wednesday' | 'saturday' : undefined;
 
       const orderData: any = {

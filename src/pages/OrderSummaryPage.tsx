@@ -15,7 +15,9 @@ interface LocationState {
 
 // Helper function to check if a date is a shift day (Monday, Wednesday, Saturday)
 const isShiftDay = (dateString: string): boolean => {
-  const date = new Date(dateString);
+  // Parse YYYY-MM-DD as local date to avoid timezone issues
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day); // month is 0-indexed
   const dayOfWeek = date.getDay();
   return dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 6; // Monday, Wednesday, Saturday
 };
